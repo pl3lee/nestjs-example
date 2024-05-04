@@ -3,48 +3,53 @@ import {
   Controller,
   Delete,
   Get,
+  NotFoundException,
   Param,
+  ParseIntPipe,
   Post,
   Put,
   Query,
+  ValidationPipe,
 } from '@nestjs/common';
 import { CreateNinjaDto } from './dto/create-ninja.dto';
 import { UpdateNinjaDto } from './dto/update-ninja.dto';
+import { NinjasService } from './ninjas.service';
 
 @Controller('ninjas')
 export class NinjasController {
-  // GET /ninjas?type=... - returns all ninjas
+  // since our service is an injectable, we are telling nest to automatically inject and instantiate the service into the controller
+  constructor(private readonly ninjaServices: NinjasService) {}
+
+  // GET /ninjas?weapon=... - returns all ninjas
   @Get()
-  getNinjas(@Query('type') type: string) {
-    return [{ type }];
+  getNinjas(@Query('weapon') weapon: 'stars' | 'nunchucks') {
+    return this.ninjaServices.getNinjas(weapon);
   }
   // GET /ninjas/:id - returns a single ninja
   @Get(':id')
-  getOneNinja(@Param('id') id: string) {
-    return {
-      id,
-    };
+  getOneNinja(@Param('id', ParseIntPipe) id: number) {
+    try {
+      return this.ninjaServices.getNinja(id);
+    } catch (error) {
+      throw new NotFoundException();
+    }
   }
   // POST /ninjas - creates a new ninja
   @Post()
-  createNinja(@Body() createNinjaDto: CreateNinjaDto) {
-    return {
-      name: createNinjaDto.name,
-    };
+  createNinja(@Body(new ValidationPipe()) createNinjaDto: CreateNinjaDto) {
+    return this.ninjaServices.createNinja(createNinjaDto);
   }
   // PUT /ninjas/:id - updates a ninja
   @Put(':id')
-  updateNinja(@Param('id') id: string, @Body() updateNinjaDto: UpdateNinjaDto) {
-    return {
-      id,
-      name: updateNinjaDto.name,
-    };
+  updateNinja(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() updateNinjaDto: UpdateNinjaDto,
+  ) {
+    return this.ninjaServices.updateNinja(id, updateNinjaDto);
   }
   // DELETE /ninjas/:id - deletes a ninja
   @Delete(':id')
-  deleteNinja(@Param('id') id: string) {
-    return {
-      id,
-    };
+  deleteNinja(@Param('id', ParseIntPipe) id: number) {
+    return this.ninjaServices.removeNinja(id);
   }
 }
